@@ -1,14 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { FaDownload, FaHome, FaSpinner, FaCheck } from 'react-icons/fa';
-
-interface ScrapedElement {
-  selector: string;
-  type: 'tag' | 'class' | 'id';
-  text?: string;
-}
+import { FaDownload, FaHome, FaSpinner, FaCheck, FaSearch, FaList, FaHashtag, FaLayerGroup, FaCode, FaSave } from 'react-icons/fa';
+import scraperService from '../api/scraperService';
+import type { ScrapedElement } from '../api/scraperService';
 
 interface PreviewData {
   [key: string]: any;
@@ -22,8 +17,10 @@ const ScrapeResultPage = () => {
   const [selectedSelectors, setSelectedSelectors] = useState<string[]>([]);
   const [previewData, setPreviewData] = useState<PreviewData[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
-  const [exportFormat, setExportFormat] = useState('json');
+  const [isSaving, setIsSaving] = useState(false);
   const [scrapedUrl, setScrapedUrl] = useState('');
+  const [elementTypeFilter, setElementTypeFilter] = useState<'all' | 'id' | 'class' | 'tag'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Decode the URL
   const decodedUrl = url ? decodeURIComponent(url) : '';
@@ -42,13 +39,8 @@ const ScrapeResultPage = () => {
           return;
         }
 
-        const response = await axios.post(
-          'http://localhost:5000/api/scraper/analyze',
-          { url: decodedUrl },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        
-        setElements(response.data.elements);
+        const response = await scraperService.analyzeWebsite(decodedUrl);
+        setElements(response.elements);
       } catch (error: any) {
         const message = error.response?.data?.message || 'Failed to analyze website';
         toast.error(message);
@@ -62,7 +54,7 @@ const ScrapeResultPage = () => {
       analyzeWebsite();
     }
   }, [decodedUrl, navigate]);
-
+  
   const handleSelectorToggle = (selector: string) => {
     setSelectedSelectors((prev) => {
       if (prev.includes(selector)) {
@@ -81,18 +73,13 @@ const ScrapeResultPage = () => {
 
     try {
       setIsExtracting(true);
-      const token = localStorage.getItem('token');
       
-      const response = await axios.post(
-        'http://localhost:5000/api/scraper/extract',
-        {
-          url: decodedUrl,
-          selectors: selectedSelectors
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await scraperService.extractData({
+        url: decodedUrl,
+        selectors: selectedSelectors
+      });
       
-      setPreviewData(response.data.data);
+      setPreviewData(response.data);
       toast.success('Data extracted successfully!');
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to extract data';
@@ -112,66 +99,27 @@ const ScrapeResultPage = () => {
       setIsExtracting(true);
       const token = localStorage.getItem('token');
       
-      // For formats that require file download
-      if (exportFormat === 'csv' || exportFormat === 'excel' || exportFormat === 'xml') {
-        // Create a form to submit
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `http://localhost:5000/api/scraper/extract?format=${exportFormat}`;
-        form.target = '_blank';
-        
-        // Add URL field
-        const urlField = document.createElement('input');
-        urlField.type = 'hidden';
-        urlField.name = 'url';
-        urlField.value = decodedUrl;
-        form.appendChild(urlField);
-        
-        // Add selectors field
-        const selectorsField = document.createElement('input');
-        selectorsField.type = 'hidden';
-        selectorsField.name = 'selectors';
-        selectorsField.value = JSON.stringify(selectedSelectors);
-        form.appendChild(selectorsField);
-        
-        // Add authorization header
-        const authField = document.createElement('input');
-        authField.type = 'hidden';
-        authField.name = 'authorization';
-        authField.value = `Bearer ${token}`;
-        form.appendChild(authField);
-        
-        // Submit the form
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
-      } else {
-        // For JSON format
-        const response = await axios.post(
-          'http://localhost:5000/api/scraper/extract',
-          {
-            url: decodedUrl,
-            selectors: selectedSelectors,
-            saveExtraction: true,
-            title: `Extraction from ${new URL(decodedUrl).hostname}`
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        
-        // Save to browser
-        const blob = new Blob([JSON.stringify(response.data.data, null, 2)], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `extraction-${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
+      // For JSON format
+      const response = await scraperService.extractData({
+        url: decodedUrl,
+        selectors: selectedSelectors,
+        saveExtraction: true,
+        title: `Extraction from ${new URL(decodedUrl).hostname}`
+      });
       
-      toast.success(`Data exported as ${exportFormat.toUpperCase()}!`);
+      // Save to browser
+      const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `extraction-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success(`Data exported as JSON!`);
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to export data';
       toast.error(message);
@@ -179,6 +127,47 @@ const ScrapeResultPage = () => {
       setIsExtracting(false);
     }
   };
+
+  // Handle saving the extraction
+  const handleSaveExtraction = async () => {
+    if (previewData.length === 0) {
+      toast.error('No data to save. Please extract data first.');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      
+      // Create a title for the extraction
+      const hostname = new URL(decodedUrl).hostname;
+      const title = `Extraction from ${hostname}`;
+      
+      await scraperService.saveExtraction({
+        url: decodedUrl,
+        title: title,
+        data: previewData,
+        selectors: selectedSelectors
+      });
+      
+      toast.success('Extraction saved successfully!');
+    } catch (error: any) {
+      console.error('Save extraction error:', error);
+      const message = error.response?.data?.message || 'Failed to save extraction';
+      toast.error(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Filter elements based on search query and element type
+  const filteredElements = elements.filter(element => {
+    const matchesType = elementTypeFilter === 'all' || element.type === elementTypeFilter;
+    const matchesSearch = searchQuery === '' || 
+      element.selector.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (element.text && element.text.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    return matchesType && matchesSearch;
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
@@ -219,17 +208,112 @@ const ScrapeResultPage = () => {
             <div className="w-full lg:w-1/3 bg-gray-800 p-6 rounded-lg border border-gray-700 h-fit">
               <h2 className="text-xl font-bold mb-4 flex justify-between items-center">
                 Available Elements
-                <span className="text-sm text-green-400">
-                  {selectedSelectors.length} selected
-                </span>
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => {
+                      if (selectedSelectors.length === elements.length) {
+                        setSelectedSelectors([]);
+                      } else {
+                        setSelectedSelectors(elements.map(e => e.selector));
+                      }
+                    }}
+                    className="text-xs px-2 py-1 rounded bg-green-600 hover:bg-green-700 transition-colors"
+                  >
+                    {selectedSelectors.length === elements.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                  <span className="text-sm text-green-400">
+                    {selectedSelectors.length} selected
+                  </span>
+                </div>
               </h2>
               
+              {/* Search input */}
+              <div className="mb-4 relative">
+                <input
+                  type="text"
+                  placeholder="Search elements..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full p-2 pl-10 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:border-green-500"
+                />
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              
+              <div className="mb-4">
+                <button 
+                  onClick={() => {
+                    setSelectedSelectors(['selectAll']);
+                    handlePreview();
+                    toast.success('Smart extraction activated - detecting product data');
+                  }}
+                  className="w-full py-2 rounded-md bg-blue-600 hover:bg-blue-700 transition-colors font-medium text-sm"
+                >
+                  Smart Extract (Detect Products)
+                </button>
+              </div>
+
+              {/* Element Type Filter Tabs */}
+              <div className="flex mb-4 border-b border-gray-700">
+                <button
+                  onClick={() => setElementTypeFilter('all')}
+                  className={`px-4 py-2 flex-1 text-center transition-colors flex items-center justify-center gap-2 ${
+                    elementTypeFilter === 'all'
+                      ? 'bg-gray-700 border-b-2 border-green-400 font-medium'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <FaList className="text-xs" /> All
+                </button>
+                <button
+                  onClick={() => setElementTypeFilter('id')}
+                  className={`px-4 py-2 flex-1 text-center transition-colors flex items-center justify-center gap-2 ${
+                    elementTypeFilter === 'id'
+                      ? 'bg-gray-700 border-b-2 border-green-400 font-medium'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <FaHashtag className="text-xs" /> ID
+                </button>
+                <button
+                  onClick={() => setElementTypeFilter('class')}
+                  className={`px-4 py-2 flex-1 text-center transition-colors flex items-center justify-center gap-2 ${
+                    elementTypeFilter === 'class'
+                      ? 'bg-gray-700 border-b-2 border-green-400 font-medium'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <FaLayerGroup className="text-xs" /> Class
+                </button>
+                <button
+                  onClick={() => setElementTypeFilter('tag')}
+                  className={`px-4 py-2 flex-1 text-center transition-colors flex items-center justify-center gap-2 ${
+                    elementTypeFilter === 'tag'
+                      ? 'bg-gray-700 border-b-2 border-green-400 font-medium'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <FaCode className="text-xs" /> Tag
+                </button>
+              </div>
+
               <div className="max-h-[60vh] overflow-y-auto pr-2">
-                {elements.length === 0 ? (
-                  <p className="text-gray-400">No elements found</p>
+                {filteredElements.length === 0 ? (
+                  <p className="text-gray-400">
+                    {elements.length === 0
+                      ? "No elements found"
+                      : "No elements match your search criteria"}
+                  </p>
                 ) : (
                   <div className="space-y-3">
-                    {elements.map((element, index) => (
+                    {filteredElements.map((element, index) => (
                       <div
                         key={index}
                         className={`p-3 rounded-md border cursor-pointer transition-colors ${
@@ -266,7 +350,13 @@ const ScrapeResultPage = () => {
                 )}
               </div>
               
-              <div className="mt-6 space-y-4">
+              {/* Info panel showing count of matching elements */}
+              <div className="mt-3 mb-4 text-xs text-gray-400">
+                Showing {filteredElements.length} of {elements.length} elements 
+                {searchQuery && ` matching "${searchQuery}"`}
+              </div>
+
+              <div className="mt-4 space-y-4">
                 <button
                   onClick={handlePreview}
                   disabled={selectedSelectors.length === 0 || isExtracting}
@@ -275,24 +365,21 @@ const ScrapeResultPage = () => {
                   {isExtracting ? 'Extracting...' : 'Preview Data'}
                 </button>
                 
-                <div className="flex gap-4">
-                  <select
-                    value={exportFormat}
-                    onChange={(e) => setExportFormat(e.target.value)}
-                    className="flex-1 p-2 rounded-md bg-gray-700 border border-gray-600 focus:border-green-500 focus:outline-none"
-                  >
-                    <option value="json">JSON</option>
-                    <option value="csv">CSV</option>
-                    <option value="excel">Excel</option>
-                    <option value="xml">XML</option>
-                  </select>
-                  
+                <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={handleExport}
-                    disabled={selectedSelectors.length === 0 || isExtracting}
-                    className="flex-1 py-2 rounded-md bg-yellow-600 hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center"
+                    disabled={selectedSelectors.length === 0 || isExtracting || isSaving}
+                    className="py-2 rounded-md bg-yellow-600 hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center"
                   >
-                    <FaDownload className="mr-2" /> Export
+                    <FaDownload className="mr-2" /> Export JSON
+                  </button>
+                  
+                  <button
+                    onClick={handleSaveExtraction}
+                    disabled={previewData.length === 0 || isSaving}
+                    className="py-2 rounded-md bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center"
+                  >
+                    <FaSave className="mr-2" /> {isSaving ? 'Saving...' : 'Save'}
                   </button>
                 </div>
               </div>
@@ -309,16 +396,126 @@ const ScrapeResultPage = () => {
                   </div>
                   <span className="text-sm text-gray-400">Data Preview</span>
                 </div>
-                
-                <div className="p-4 font-mono text-sm text-green-300 overflow-x-auto max-h-[70vh] overflow-y-auto">
+                  <div className="p-4 font-mono text-sm text-green-300 overflow-x-auto max-h-[70vh] overflow-y-auto">
                   {previewData.length === 0 ? (
                     <p className="text-gray-500">
                       {selectedSelectors.length === 0
                         ? '// Select elements to extract data'
                         : '// Click "Preview Data" to see extraction results'}
                     </p>
-                  ) : (
-                    <pre>{JSON.stringify(previewData, null, 2)}</pre>
+                  ) : (                      <div>
+                        <div className="mb-4 flex">
+                          <select 
+                            className="p-2 rounded-md bg-gray-700 border border-gray-600 focus:border-green-500 focus:outline-none text-white"
+                            onChange={(e) => {
+                              // We'll just keep this as a UI element for now
+                              // Later we can implement different view modes
+                              console.log("Selected view mode:", e.target.value);
+                            }}
+                          >
+                            <option value="formatted">Formatted View</option>
+                            <option value="raw">Raw JSON</option>
+                            <option value="table">Table View</option>
+                          </select>
+                        </div>
+                      
+                      {/* Formatted Display - like product cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {previewData.map((item, index) => (
+                          <div key={index} className="bg-gray-800 p-4 rounded-lg border border-gray-700 hover:border-green-500 transition-colors">
+                            {/* Show image if available */}
+                            {item.image && (
+                              <div className="mb-3">
+                                <img 
+                                  src={item.image} 
+                                  alt={item.alt || item.title || 'Image'} 
+                                  className="max-h-40 object-contain mx-auto rounded"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            )}
+                            
+                            {/* Title */}
+                            {item.title && (
+                              <h3 className="text-lg font-semibold text-yellow-300 mb-2">{item.title}</h3>
+                            )}
+                            
+                            {/* Price */}
+                            {item.price && (
+                              <p className="text-green-400 font-bold">{item.price}</p>
+                            )}
+                            
+                            {/* Rating & Reviews */}
+                            {(item.rating || item.reviews) && (
+                              <div className="flex items-center gap-2 mb-2">
+                                {item.rating && (
+                                  <span className="bg-blue-900 px-2 py-0.5 rounded text-blue-200">
+                                    ★ {item.rating}
+                                  </span>
+                                )}
+                                {item.reviews && (
+                                  <span className="text-gray-400">
+                                    ({item.reviews} reviews)
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            
+                            {/* Description */}
+                            {item.description && (
+                              <p className="text-gray-300 mt-1 text-sm line-clamp-2">{item.description}</p>
+                            )}
+                            
+                            {/* URL */}
+                            {item.url && (
+                              <div className="mt-2">
+                                <a 
+                                  href={item.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-blue-400 hover:underline text-xs truncate block"
+                                >
+                                  {item.url}
+                                </a>
+                              </div>
+                            )}
+                            
+                            {/* Other properties */}
+                            <div className="mt-3 pt-3 border-t border-gray-700">
+                              {Object.entries(item).map(([key, value]) => {
+                                // Skip already displayed properties
+                                if (['title', 'price', 'rating', 'reviews', 'description', 'url', 'image', 'alt', '_selector'].includes(key)) {
+                                  return null;
+                                }
+                                
+                                return (
+                                  <div key={key} className="flex justify-between text-xs mb-1">
+                                    <span className="text-gray-400">{key}:</span>
+                                    <span className="text-white">{String(value).substring(0, 50)}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            
+                            {/* Selector used */}
+                            <div className="mt-3 pt-2 border-t border-gray-700 text-xs text-gray-500">
+                              selector: {item._selector || 'unknown'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Also show raw data for debugging */}
+                      <details className="mt-6">
+                        <summary className="cursor-pointer text-gray-400 hover:text-white transition-colors">
+                          Show raw JSON data
+                        </summary>
+                        <pre className="mt-2 p-2 bg-gray-900 rounded">{JSON.stringify(previewData, null, 2)}</pre>
+                      </details>
+                    </div>
                   )}
                 </div>
               </div>

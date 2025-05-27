@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAppDispatch } from '../store/hooks';
-import axios from 'axios';
+import authService from '../api/authService';
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
@@ -14,11 +14,8 @@ const OAuthCallback = () => {
     
     if (token) {
       try {
-        // Save token to local storage
-        localStorage.setItem('token', token);
-        
-        // Set default auth header for future requests
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        // Save token to local storage and setup headers
+        authService.setToken(token);
         
         // Notify user
         toast.success('Successfully signed in with Google!');

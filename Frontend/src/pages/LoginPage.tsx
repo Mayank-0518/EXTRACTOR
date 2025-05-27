@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { FaGoogle } from 'react-icons/fa';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { login } from '../store/slices/authSlice';
+import { GOOGLE_AUTH_URL } from '../api/config';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -28,7 +29,7 @@ const LoginPage = () => {
   // Handle Google OAuth login
   const handleGoogleLogin = () => {
     // Redirect to backend OAuth endpoint
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    window.location.href = GOOGLE_AUTH_URL;
   };
 
   return (

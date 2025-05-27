@@ -14,6 +14,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import ScrapeResultPage from './pages/ScrapeResultPage';
 import OAuthCallback from './pages/OAuthCallback';
+import ExtractionDetailPage from './pages/ExtractionDetailPage';
 
 function App() {
   const dispatch = useAppDispatch();
@@ -39,6 +40,11 @@ function App() {
         <Route path="/result/:url" element={
           <ProtectedRoute>
             <ScrapeResultPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/extraction/:id" element={
+          <ProtectedRoute>
+            <ExtractionDetailPage />
           </ProtectedRoute>
         } />
       </Routes>

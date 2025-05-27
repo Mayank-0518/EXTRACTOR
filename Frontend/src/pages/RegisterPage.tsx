@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import authService from '../api/authService';
 
 const RegisterPage = () => {
   const [email, setEmail] = useState('');
@@ -22,12 +22,7 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      await axios.post('http://localhost:5000/api/auth/register', {
-        email,
-        password,
-        name
-      });
-      
+      await authService.register({ email, password, name });
       toast.success('Registration successful! Please log in.');
       navigate('/login');
     } catch (error: any) {

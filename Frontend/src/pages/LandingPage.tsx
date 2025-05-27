@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { FaDatabase, FaSearch, FaFileExport } from 'react-icons/fa';
+import { GOOGLE_AUTH_URL } from '../api/config';
 
 const LandingPage = () => {
   return (
@@ -25,7 +26,9 @@ const LandingPage = () => {
             Register
           </Link>
         </div>
-      </nav>      {/* Hero Section */}
+      </nav>
+
+      {/* Hero Section */}
       <section className="container mx-auto px-6 py-20 text-center">
         <h1 className="text-5xl md:text-6xl font-bold mb-8">
           Extract Data from Any Website with{" "}
@@ -36,14 +39,15 @@ const LandingPage = () => {
           A powerful web scraping tool that makes data extraction simple, fast,
           and reliable. No coding required.
         </p>
-        <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 justify-center">        <Link
-          to="/login"
-          className="px-8 py-4 rounded-lg bg-gradient-to-r from-green-500 to-yellow-500 hover:from-green-600 hover:to-yellow-600 text-xl font-bold transition-all transform hover:scale-105 shadow-lg"
-        >
-          Get Started
-        </Link>
+        <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 justify-center">
+          <Link
+            to="/login"
+            className="px-8 py-4 rounded-lg bg-gradient-to-r from-green-500 to-yellow-500 hover:from-green-600 hover:to-yellow-600 text-xl font-bold transition-all transform hover:scale-105 shadow-lg"
+          >
+            Get Started
+          </Link>
           <a
-            href="http://localhost:5000/api/auth/google"
+            href={GOOGLE_AUTH_URL}
             className="flex items-center justify-center px-8 py-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-xl font-bold transition-all transform hover:scale-105 shadow-lg"
           >
             <FaSearch className="mr-2" /> Sign in with Google

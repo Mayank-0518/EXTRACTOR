@@ -1,9 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
-
-const API_URL = 'http://localhost:5000/api';
+import authService from '../../api/authService';
 
 // Define types
 interface User {
@@ -34,10 +32,9 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, { email, password });
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      const response = await authService.login({ email, password });
+      const { token, user } = response;
+      authService.setToken(token);
       return { token, user };
     } catch (error: any) {
       const message = error.response?.data?.message || 'Login failed';
@@ -54,7 +51,7 @@ export const register = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      await axios.post(`${API_URL}/auth/register`, { email, password, name });
+      await authService.register({ email, password, name });
       toast.success('Registration successful. You can now log in.');
       return true;
     } catch (error: any) {
@@ -70,12 +67,9 @@ export const fetchCurrentUser = createAsyncThunk('auth/fetchCurrentUser', async 
     const token = localStorage.getItem('token');
     if (!token) return rejectWithValue('No token found');
 
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    const response = await axios.get(`${API_URL}/auth/me`);
-    return response.data;
+    return await authService.getCurrentUser();
   } catch (error: any) {
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    authService.removeToken();
     return rejectWithValue('Authentication failed');
   }
 });
@@ -91,8 +85,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.loading = false;
       state.error = null;
-      localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
+      authService.removeToken();
       toast.success('Logged out');
     },
     clearError: (state) => {
