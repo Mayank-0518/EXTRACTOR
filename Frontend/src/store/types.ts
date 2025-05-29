@@ -14,7 +14,7 @@ export interface AuthState {
   error: string | null;
 }
 
-// Redux store type
+//store type
 export interface RootState {
   auth: AuthState;
 }

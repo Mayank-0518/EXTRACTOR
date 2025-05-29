@@ -3,9 +3,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { AuthRequest } from '../middleware/auth.middleware.js';
 
-/**
- * Analyze a website to find available selectors
- */
+//finding all available selectors
 export const analyzeWebsite = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { url } = req.body;

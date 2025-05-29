@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 // Get the API URL from environment variables
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-export const GOOGLE_AUTH_URL = import.meta.env.VITE_GOOGLE_AUTH_URL || 'http://localhost:5000/api/auth/google';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+export const GOOGLE_AUTH_URL = import.meta.env.VITE_GOOGLE_AUTH_URL;;
 
 // Create an axios instance with base URL
 const api = axios.create({

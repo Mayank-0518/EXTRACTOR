@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth.middleware.js';
 import { Extraction } from '../models/extraction.model.js';
 
 /**
  * Save extraction results to the database
  */
-export const saveExtraction = async (req: Request, res: Response): Promise<void> => {
+export const saveExtraction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { url, title, selectors, data } = req.body;
     
@@ -43,7 +44,7 @@ export const saveExtraction = async (req: Request, res: Response): Promise<void>
 /**
  * Get extraction history for the current user
  */
-export const getExtractionHistory = async (req: Request, res: Response): Promise<void> => {
+export const getExtractionHistory = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.userId) {
       res.status(401).json({ message: 'Authentication required' });
@@ -82,7 +83,7 @@ export const getExtractionHistory = async (req: Request, res: Response): Promise
 /**
  * Get a specific extraction by ID
  */
-export const getExtraction = async (req: Request, res: Response): Promise<void> => {
+export const getExtraction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const format = req.query.format as string || 'json';
@@ -138,7 +139,7 @@ export const getExtraction = async (req: Request, res: Response): Promise<void> 
 /**
  * Delete a specific extraction by ID
  */
-export const deleteExtraction = async (req: Request, res: Response): Promise<void> => {
+export const deleteExtraction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     
@@ -169,7 +170,7 @@ export const deleteExtraction = async (req: Request, res: Response): Promise<voi
 /**
  * Preview a subset of extraction data
  */
-export const previewExtraction = async (req: Request, res: Response): Promise<void> => {
+export const previewExtraction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const limit = parseInt(req.query.limit as string || '10');

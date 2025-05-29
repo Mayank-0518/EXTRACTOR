@@ -31,7 +31,7 @@ export interface Extraction {
 }
 
 const scraperService = {
-  // Analyze a website to find available elements
+
   analyzeWebsite: async (url: string): Promise<{ elements: ScrapedElement[] }> => {
     const response = await api.post('/scraper/analyze', { url });
     return response.data;
@@ -61,10 +61,15 @@ const scraperService = {
     return response.data;
   },
 
+
+
   // Get extraction download URL for different formats
-  getExtractionUrl: (format: string): string => {
-    return `${api.defaults.baseURL}/scraper/extract?format=${format}`;
-  },
+
+  // getExtractionUrl: (format: string): string => {
+  //   return `${api.defaults.baseURL}/scraper/extract?format=${format}`;
+  // },
+
+
 
   // Delete an extraction
   deleteExtraction: async (id: string): Promise<any> => {

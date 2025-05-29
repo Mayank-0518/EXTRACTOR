@@ -39,7 +39,7 @@ const authService = {
     return response.data;
   },
 
-  // Set token in local storage and axios headers
+  // Set token in local storage  header
   setToken: (token: string): void => {
     localStorage.setItem('token', token);
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
