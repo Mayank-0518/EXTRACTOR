@@ -25,11 +25,13 @@ const LoginPage = () => {
       // Error is already handled in the thunk
     }
   };
-
   // Handle Google OAuth login
   const handleGoogleLogin = () => {
-    // Redirect to backend OAuth endpoint
-    window.location.href = GOOGLE_AUTH_URL;
+    // Redirect to backend OAuth endpoint with state parameter
+    const state = Math.random().toString(36).substring(2, 15);
+    // Save state to localStorage to verify on return
+    localStorage.setItem('oauth_state', state);
+    window.location.href = `${GOOGLE_AUTH_URL}?state=${state}`;
   };
 
   return (

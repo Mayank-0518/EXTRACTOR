@@ -5,7 +5,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Google OAuth Strategy
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || '',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
@@ -13,27 +12,22 @@ passport.use(new GoogleStrategy({
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
-      // Check if user already exists
       let user = await User.findOne({ googleId: profile.id });
       
       if (user) {
-        // User found, return user
         return done(null, user);
       }
       
-      // Check if user with this email already exists
       if (profile.emails && profile.emails.length > 0) {
         user = await User.findOne({ email: profile.emails[0].value });
         
         if (user) {
-          // Link Google ID to existing account
           user.googleId = profile.id;
           await user.save();
           return done(null, user);
         }
       }
       
-      // Create new user
       const email = profile.emails && profile.emails.length > 0 
         ? profile.emails[0].value 
         : `${profile.id}@google.user`;
@@ -54,7 +48,6 @@ passport.use(new GoogleStrategy({
   }
 ));
 
-// Serialize and deserialize user
 passport.serializeUser((user: any, done) => {
   done(null, user.id);
 });

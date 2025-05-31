@@ -2,9 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware.js';
 import { Extraction } from '../models/extraction.model.js';
 
-/**
- * Save extraction results to the database
- */
+//save extraction
 export const saveExtraction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { url, title, selectors, data } = req.body;
@@ -41,9 +39,7 @@ export const saveExtraction = async (req: AuthRequest, res: Response): Promise<v
   }
 };
 
-/**
- * Get extraction history for the current user
- */
+//extraction history
 export const getExtractionHistory = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.userId) {
@@ -54,15 +50,26 @@ export const getExtractionHistory = async (req: AuthRequest, res: Response): Pro
     const page = parseInt(req.query.page as string || '1');
     const limit = parseInt(req.query.limit as string || '10');
     
-    const extractions = await Extraction
+    const extractionsData = await Extraction
       .find({ userId: req.userId })
-      .select('url title createdAt')
+      .select('url title createdAt data')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
     
     const total = await Extraction.countDocuments({ userId: req.userId });
     
+    // Format extractions for frontend compatibility
+    const extractions = extractionsData.map(extraction => ({
+      id: extraction._id.toString(),
+      url: extraction.url,
+      title: extraction.title,
+      createdAt: extraction.createdAt,
+      userId: req.userId,
+      dataCount: Array.isArray(extraction.data) ? extraction.data.length : 0
+    }));
+    
+    // Return just the extractions array for better frontend compatibility
     res.json({
       extractions,
       pagination: {
@@ -80,9 +87,7 @@ export const getExtractionHistory = async (req: AuthRequest, res: Response): Pro
   }
 };
 
-/**
- * Get a specific extraction by ID
- */
+//get specific extraction id
 export const getExtraction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -101,34 +106,29 @@ export const getExtraction = async (req: AuthRequest, res: Response): Promise<vo
     if (!extraction) {
       res.status(404).json({ message: 'Extraction not found' });
       return;
-    }    // Handle different export formats
+    }  
+
     if (format === 'csv') {
-      // Ensure data is an array before passing to convertToCSV
       const dataArray = Array.isArray(extraction.data) ? extraction.data : [extraction.data];
       const csvData = convertToCSV(dataArray);
       res.header('Content-Type', 'text/csv');
       res.attachment(`extraction-${id}.csv`);
       res.send(csvData);
       return;
-    } else if (format === 'excel') {
-      // Ensure data is an array before passing to convertToExcel
-      const dataArray = Array.isArray(extraction.data) ? extraction.data : [extraction.data];
-      const excelData = convertToExcel(dataArray);
-      res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.attachment(`extraction-${id}.xlsx`);
-      res.send(excelData);
-      return;    } else if (format === 'xml') {
-      // For XML, we can pass either a single object or an array
+    }  
+    
+    else if (format === 'xml') {
       const xmlData = convertToXML(extraction.data);
       res.header('Content-Type', 'application/xml');
       res.attachment(`extraction-${id}.xml`);
       res.send(xmlData);
-      return;
+      return; 
     }
     
-    // Default to JSON
     res.json(extraction);
-  } catch (error) {
+  } 
+  
+  catch (error) {
     console.error('Error fetching extraction:', error);
     res.status(500).json({ 
       message: error instanceof Error ? error.message : 'Failed to fetch extraction'
@@ -136,9 +136,8 @@ export const getExtraction = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
-/**
- * Delete a specific extraction by ID
- */
+
+//delete saved extraction
 export const deleteExtraction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -167,9 +166,7 @@ export const deleteExtraction = async (req: AuthRequest, res: Response): Promise
   }
 };
 
-/**
- * Preview a subset of extraction data
- */
+//preview
 export const previewExtraction = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -211,15 +208,13 @@ export const previewExtraction = async (req: AuthRequest, res: Response): Promis
   }
 };
 
-/**
- * Convert data to CSV format
- */
+//CSV converter 
+//GPT ne likha hai maine nhi
 function convertToCSV(data: Record<string, any>[]): string {
   if (!Array.isArray(data) || data.length === 0) {
     return '';
   }
   
-  // Get all unique headers from all objects
   const headers = new Set<string>();
   data.forEach(item => {
     Object.keys(item).forEach(key => {
@@ -249,9 +244,8 @@ function convertToCSV(data: Record<string, any>[]): string {
   return [headerRow, ...rows].join('\n');
 }
 
-/**
- * Convert data to XML format
- */
+//same here
+//not implemented thogh (error)
 function convertToXML(data: Record<string, any>[] | Record<string, any>): string {
   const toXML = (obj: any, nodeName = 'item'): string => {
     if (obj === null || obj === undefined) {
@@ -291,23 +285,8 @@ function convertToXML(data: Record<string, any>[] | Record<string, any>): string
   return `<?xml version="1.0" encoding="UTF-8"?>\n${toXML(data, 'data')}`;
 }
 
-/**
- * Convert data to Excel format
- * Note: This is a simple implementation that creates a CSV and returns it as a buffer
- * For better Excel support, install xlsx: npm install xlsx
- */
-function convertToExcel(data: Record<string, any>[]): Buffer {
-  // Simple implementation - convert to CSV and return as buffer
-  const csvString = convertToCSV(data);
-  return Buffer.from(csvString);
-  
-  // For a full Excel implementation with the xlsx library:
-  /*
-  import * as XLSX from 'xlsx';
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Extraction');
-  const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-  return excelBuffer;
-  */
-}
+//will use xlsx laterOn  
+// function convertToExcel(data: Record<string, any>[]): Buffer {
+//   const csvString = convertToCSV(data);
+//   return Buffer.from(csvString);
+// }
