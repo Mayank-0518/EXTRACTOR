@@ -14,17 +14,24 @@ const DashboardPage = () => {
   const [isLoadingExtractions, setIsLoadingExtractions] = useState(true);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-
   // Fetch saved extractions on component mount
   useEffect(() => {
     const fetchExtractions = async () => {
       try {
         setIsLoadingExtractions(true);
         const extractionData = await scraperService.getUserExtractions();
-        setExtractions(extractionData);
+        // Make sure we have an array before setting state
+        if (Array.isArray(extractionData)) {
+          setExtractions(extractionData);
+        } else {
+          console.error("Expected array of extractions but received:", extractionData);
+          setExtractions([]);
+          toast.error("Received unexpected data format from server");
+        }
       } catch (error) {
         console.error("Failed to fetch extractions", error);
         toast.error("Failed to load your saved extractions");
+        setExtractions([]); // Set to empty array to avoid map errors
       } finally {
         setIsLoadingExtractions(false);
       }
@@ -144,12 +151,11 @@ const DashboardPage = () => {
             <div className="p-4 bg-gray-700">
               <h3 className="text-2xl font-bold">Recent Extractions</h3>
             </div>
-            
-            {isLoadingExtractions ? (
+              {isLoadingExtractions ? (
               <div className="p-8 flex justify-center">
                 <FaSpinner className="animate-spin text-3xl text-green-400" />
               </div>
-            ) : extractions.length === 0 ? (
+            ) : !extractions || extractions.length === 0 ? (
               <div className="p-8 text-center">
                 <p className="text-gray-400">
                   You don't have any extractions yet. Enter a URL above to get started.
@@ -168,7 +174,8 @@ const DashboardPage = () => {
                           rel="noopener noreferrer"
                           className="text-blue-400 hover:underline flex items-center text-sm mt-1"
                         >
-                          {new URL(extraction.url).hostname} <FaExternalLinkAlt className="ml-1 text-xs" />
+                          {new URL(extraction.url).hostname} 
+                          <FaExternalLinkAlt className="ml-1 text-xs" />
                         </a>
                         <p className="text-sm text-gray-400 mt-1">
                           {formatDate(extraction.createdAt)} • {extraction.dataCount} items

@@ -11,6 +11,26 @@ const OAuthCallback = () => {
   
   useEffect(() => {
     const token = searchParams.get('token');
+    const error = searchParams.get('error');
+    const state = searchParams.get('state');
+    const storedState = localStorage.getItem('oauth_state');
+    
+    // Clear stored state regardless of outcome
+    localStorage.removeItem('oauth_state');
+    
+    // Check for errors first
+    if (error) {
+      toast.error(`Authentication error: ${error}`);
+      navigate('/login');
+      return;
+    }
+    
+    // Validate state if provided (security check)
+    if (state && storedState && state !== storedState) {
+      toast.error('Invalid authentication state');
+      navigate('/login');
+      return;
+    }
     
     if (token) {
       try {

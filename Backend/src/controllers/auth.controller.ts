@@ -68,13 +68,28 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
 //OAuth Callback
 export const googleCallback = (req: any, res: Response): void => {
-  const token = jwt.sign(
-    { id: req.user._id },
-    process.env.JWT_SECRET,
-    { expiresIn: '24h' }
-  );
-  
-  res.redirect(`${process.env.FRONTEND_URL }`);
+  try {
+    const state = req.query.state as string | undefined;
+    const stateParam = state ? `&state=${state}` : '';
+    
+    if (!req.user || !req.user._id) {
+      console.error('OAuth callback: User object is missing or invalid');
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback?error=authentication_failed${stateParam}`);
+      return;
+    }
+
+    const token = jwt.sign(
+      { id: req.user._id },
+      process.env.JWT_SECRET || 'fallback_secret',
+      { expiresIn: '24h' }
+    );
+    
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback?token=${token}${stateParam}`);  } catch (error) {
+    console.error('OAuth callback error:', error);
+    const state = req.query.state as string | undefined;
+    const stateParam = state ? `&state=${state}` : '';
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback?error=server_error${stateParam}`);
+  }
 };
 
 
