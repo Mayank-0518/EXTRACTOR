@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { URL } from 'url';
@@ -147,22 +148,88 @@ export class ScraperService {
   //to extract data after user selects elements
   extractData(html: string, selectors: string[], baseUrl: string): Record<string, any>[] {
     const $ = cheerio.load(html);
-    const results: Record<string, any>[] = [];
-    const processedElements = new Set<string>(); 
-    
+    const data: Record<string, any>[] = [];
     const isSelectAll = selectors.includes('selectAll') || selectors.includes('*');
-    
-    if (isSelectAll) {
-      return this.extractAllData($, baseUrl);
-    } else {
-      selectors.forEach(selector => {
-        if (selector !== 'selectAll' && selector !== '*') {
-          this.extractSelectorData($, selector, baseUrl, results, processedElements);
-        }
+
+    // Table extraction if any selector is a table or contains a table
+    const tableSelectorIndex = selectors.findIndex(selector => 
+      selector.toLowerCase() === 'table' || 
+      selector.includes('table') || 
+      $(selector).find('table').length > 0 || 
+      $(selector).is('table')
+    );
+
+    if (tableSelectorIndex >= 0) {
+      const tableSelector = selectors[tableSelectorIndex];
+      const tables = tableSelector === 'table' ? $('table') : $(tableSelector);
+      tables.each((_, table) => {
+        const tableData = this.extractTableData($, $(table), baseUrl);
+        data.push(...tableData);
       });
+    } else if (isSelectAll) {
+      // Product-like selectors for selectAll
+      const productSelectors = [
+        '.product', '[class*=product]', '.item', '[class*=item]', 'article', '.card', '[class*=card]',
+        '[data-component-type="s-search-result"]', '.s-result-item', '[data-asin]', '.celwidget',
+        '.product-item', '.listing-item', '.search-result', '.grid-item', '[data-product-id]', '[data-sku]',
+        'li[class*="item"]', 'div[class*="listing"]', 'div[class*="tile"]'
+      ];
+      let found = false;
+      for (const productSelector of productSelectors) {
+        if ($(productSelector).length > 0) {
+          $(productSelector).each((_, element) => {
+            const el = $(element);
+            const item: Record<string, any> = {};
+            this.extractStructuredData($, el, item, baseUrl);
+            item._selector = productSelector;
+            const hasMeaningfulData = item.title || item.price || item.image || Object.keys(item).length > 2;
+            if (hasMeaningfulData) {
+              data.push(item);
+            }
+          });
+          if (data.length > 0) {
+            found = true;
+            break;
+          }
+        }
+      }
+      // Fallback to all elements if no product selectors found
+      if (!found) {
+        $('*').each((_, el) => {
+          const element = $(el);
+          const item: Record<string, any> = {};
+          this.extractStructuredData($, element, item, baseUrl);
+          if (Object.keys(item).length > 1) {
+            data.push(item);
+          }
+        });
+      }
+    } else {
+      // Regular selectors
+      for (const selector of selectors.filter(s => s !== '*' && s !== 'selectAll')) {
+        $(selector).each((_, element) => {
+          const el = $(element);
+          const item: Record<string, any> = {};
+          this.extractStructuredData($, el, item, baseUrl);
+          if (Object.keys(item).length === 0) {
+            item.text = el.text().trim();
+            const href = el.is('a') ? el.attr('href') : undefined;
+            const src = el.is('img') ? el.attr('src') : undefined;
+            if (href) {
+              item.href = href.startsWith('http') ? href : new URL(href, baseUrl).toString();
+            }
+            if (src) {
+              item.src = src.startsWith('http') ? src : new URL(src, baseUrl).toString();
+            }
+          }
+          item._selector = selector;
+          if (Object.keys(item).length > 1) {
+            data.push(item);
+          }
+        });
+      }
     }
-    
-    return results;
+    return data;
   }
   
 //extractAllata
@@ -409,57 +476,221 @@ export class ScraperService {
 
   private extractTableData($: cheerio.CheerioAPI, table: cheerio.Cheerio<any>, baseUrl: string): Record<string, any>[] {
     const tableData: Record<string, any>[] = [];
+    // Get headers from the first row
     const headers: string[] = [];
-    
-    const headerElements = $(table).find('thead tr th, thead tr td');
-    
-    if (headerElements.length > 0) {
-      headerElements.each((j, cell) => {
-        headers.push($(cell).text().trim() || `column${j + 1}`);
-      });
-    } else {
-      $(table).find('tr:first-child td, tr:first-child th').each((j, cell) => {
-        headers.push($(cell).text().trim() || `column${j + 1}`);
+    $(table).find('tr:first-child th, tr:first-child td').each((_, cell) => {
+      headers.push($(cell).text().trim());
+    });
+    if (headers.length === 0) {
+      const firstRow = $(table).find('tr:first-child td');
+      firstRow.each((index) => {
+        headers.push(`column${index + 1}`);
       });
     }
-    
-    // Find all data rows - if we found headers in thead, use tbody rows, otherwise use all rows except first
-    const dataRows = headerElements.length > 0 
-      ? $(table).find('tbody tr') 
-      : $(table).find('tr:not(:first-child)');
-    
-    dataRows.each((i, row) => {
-      if (i > 100) return; 
-      
+    $(table).find('tr').each((rowIndex, row) => {
+      if (rowIndex === 0 && headers.length > 0 && $(row).find('th').length > 0) {
+        return;
+      }
       const rowData: Record<string, any> = {};
-      $(row).find('td').each((j, cell) => {
-        const header = headers[j] || `column${j + 1}`;
-        const $cell = $(cell);
-        
-        const $img = $cell.find('img');
-        if ($img.length > 0) {
-          const src = $img.attr('src');
-          if (src) {
-            const imgUrl = src.startsWith('http') ? src : new URL(src, baseUrl).toString();
-            rowData[header] = {
-              text: $cell.text().trim(),
-              image: imgUrl,
-              alt: $img.attr('alt') || ''
-            };
-          } else {
-            rowData[header] = $cell.text().trim();
-          }
-        } else {
-          rowData[header] = $cell.text().trim();
-        }
+      $(row).find('td').each((cellIndex, cell) => {
+        const header = headers[cellIndex] || `column${cellIndex + 1}`;
+        rowData[header] = $(cell).text().trim();
       });
-      
       if (Object.keys(rowData).length > 0) {
         tableData.push(rowData);
       }
     });
-    
     return tableData;
+  }
+  /**
+   * Extract structured data from an element with deep nested search
+   */
+  private extractStructuredData($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, item: Record<string, any>, baseUrl: string): void {
+    // Deep image extraction - search through all nested levels
+    const images: string[] = [];
+    const imageData: any[] = [];
+    element.find('img').each((_, img) => {
+      const $img = $(img);
+      let src = $img.attr('src') || $img.attr('data-src') || $img.attr('data-lazy-src') || $img.attr('data-original');
+      if (!src) {
+        const dataSrcSet = $img.attr('data-srcset') || $img.attr('srcset');
+        if (dataSrcSet) {
+          src = dataSrcSet.split(',')[0]?.split(' ')[0];
+        }
+      }
+      if (src) {
+        const imgUrl = src.startsWith('http') ? src : new URL(src, baseUrl).toString();
+        images.push(imgUrl);
+        const imgInfo: any = {
+          src: imgUrl,
+          alt: $img.attr('alt') || '',
+          title: $img.attr('title') || '',
+          width: $img.attr('width') || '',
+          height: $img.attr('height') || ''
+        };
+        const parent = $img.parent();
+        if (parent.length) {
+          imgInfo.parentClass = parent.attr('class') || '';
+        }
+        imageData.push(imgInfo);
+      }
+    });
+    if (images.length > 0) {
+      item.image = images[0];
+      if (images.length > 1) {
+        item.images = images;
+      }
+      item.imageData = imageData;
+    }
+    // Extract heading data (often product titles)
+    element.find('h1, h2, h3, h4, h5, h6, [class*="title"], [class*="name"], [id*="title"]').each((_, heading) => {
+      const $heading = $(heading);
+      const text = $heading.text().trim();
+      const classNames = $heading.attr('class')?.split(' ') || [];
+      if (text && !item.title) {
+        if (classNames.some(c => /title|name|product|heading/i.test(c))) {
+          item.title = text;
+        } else if ($heading.is('h1, h2, h3')) {
+          item.title = text;
+        }
+      }
+    });
+    // Extract price data
+    element.find('.price, [class*=price], .cost, [class*=cost], [data-price], .money, [class*=money], .amount').each((_, price) => {
+      const $price = $(price);
+      let priceText = $price.text().trim();
+      if (!priceText) {
+        priceText = $price.attr('data-price') || $price.attr('data-value') || '';
+      }
+      if (priceText && !item.price) {
+        const cleanPrice = priceText.replace(/[^\d.,₹$€£¥]/g, '');
+        const numValue = parseFloat(cleanPrice.replace(/,/g, ''));
+        if (!isNaN(numValue)) {
+          item.price = priceText;
+          item.priceValue = numValue;
+          item.priceCurrency = priceText.match(/[₹$€£¥]/)?.[0] || '';
+        } else {
+          item.price = priceText;
+        }
+      }
+    });
+    // Extract ratings
+    element.find('.rating, [class*=rating], .stars, [class*=stars], [class*=review-score], .score').each((_, rating) => {
+      const $rating = $(rating);
+      let ratingText = $rating.text().trim();
+      if (!ratingText) {
+        ratingText = $rating.attr('data-rating') || $rating.attr('data-score') || '';
+      }
+      if (ratingText && !item.rating) {
+        const cleanRating = ratingText.replace(/[^\d.]/g, '');
+        const numRating = parseFloat(cleanRating);
+        if (!isNaN(numRating)) {
+          item.rating = numRating;
+          item.ratingText = ratingText;
+        }
+      }
+    });
+    // Extract reviews count
+    element.find('.reviews, [class*=review], .votes, [class*=votes], [class*=rating-count]').each((_, reviews) => {
+      const $reviews = $(reviews);
+      const text = $reviews.text().trim();
+      if (text && !item.reviews) {
+        const matches = text.match(/[\d,]+/g);
+        if (matches) {
+          const number = parseInt(matches[0].replace(/,/g, ''));
+          if (!isNaN(number)) {
+            item.reviews = number;
+            item.reviewsText = text;
+          }
+        }
+      }
+    });
+    // Extract images (again for alt)
+    element.find('img').each((_, img) => {
+      const $img = $(img);
+      const src = $img.attr('src');
+      if (src) {
+        const imgUrl = src.startsWith('http') ? src : new URL(src, baseUrl).toString();
+        if (!item.image) {
+          item.image = imgUrl;
+        } else if (!item.images) {
+          item.images = [item.image, imgUrl];
+        } else {
+          item.images.push(imgUrl);
+        }
+        const alt = $img.attr('alt');
+        if (alt && !item.alt) {
+          item.alt = alt;
+        }
+      }
+    });
+    // Extract links
+    element.find('a').each((_, link) => {
+      const $link = $(link);
+      const href = $link.attr('href');
+      if (href && !item.url) {
+        const linkUrl = href.startsWith('http') ? href : new URL(href, baseUrl).toString();
+        item.url = linkUrl;
+        const linkText = $link.text().trim();
+        if (linkText && !item.linkText) {
+          item.linkText = linkText;
+        }
+      }
+    });
+    // Extract product description
+    element.find('p, .description, [class*=desc], .product-desc, .summary, [class*=summary]').each((_, desc) => {
+      const $desc = $(desc);
+      const text = $desc.text().trim();
+      if (text && text.length > 20 && !item.description) {
+        item.description = text.length > 200 ? text.substring(0, 200) + '...' : text;
+      }
+    });
+    // Extract availability/stock info
+    element.find('.availability, [class*=stock], [class*=available], .in-stock, .out-of-stock').each((_, stock) => {
+      const $stock = $(stock);
+      const text = $stock.text().trim();
+      if (text && !item.availability) {
+        item.availability = text;
+        item.inStock = /in.?stock|available|ships/i.test(text) && !/out.?of.?stock|unavailable/i.test(text);
+      }
+    });
+    // Extract brand information
+    element.find('.brand, [class*=brand], [data-brand], .manufacturer').each((_, brand) => {
+      const $brand = $(brand);
+      const text = $brand.text().trim() || $brand.attr('data-brand') || '';
+      if (text && !item.brand) {
+        item.brand = text;
+      }
+    });
+    // Extract SKU/Product ID
+    element.find('[class*=sku], [data-sku], [class*=product-id], [data-product-id]').each((_, sku) => {
+      const $sku = $(sku);
+      const text = $sku.text().trim() || $sku.attr('data-sku') || $sku.attr('data-product-id') || '';
+      if (text && !item.sku) {
+        item.sku = text;
+      }
+    });
+    // Add any additional useful data from spans, divs with meaningful classes
+    element.find('span, div').each((_, el) => {
+      const $el = $(el);
+      const classNames = $el.attr('class')?.split(' ') || [];
+      const text = $el.text().trim();
+      if (text && classNames.length > 0) {
+        for (const className of classNames) {
+          if (className && 
+              !item[className] && 
+              !['price', 'rating', 'reviews', 'title', 'description', 'image', 'container', 'wrapper', 'row', 'col'].includes(className) &&
+              !className.match(/^(d-|flex-|text-|bg-|border-|p-|m-|w-|h-)/)) {
+            if (/^\d+(\.\d+)?$/.test(text)) {
+              item[className] = parseFloat(text);
+            } else if (text.length > 0 && text.length < 100) {
+              item[className] = text;
+            }
+            break;
+          }
+        }
+      }
+    });
   }
   
 
