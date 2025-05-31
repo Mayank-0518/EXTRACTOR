@@ -18,7 +18,6 @@ const ScrapeResultPage = () => {
   const [previewData, setPreviewData] = useState<PreviewData[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [scrapedUrl, setScrapedUrl] = useState('');
   const [elementTypeFilter, setElementTypeFilter] = useState<'all' | 'id' | 'class' | 'tag'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'formatted' | 'raw'>('formatted');
@@ -33,7 +32,7 @@ const ScrapeResultPage = () => {
         setIsLoading(true);
         const response = await scraperService.analyzeWebsite(decodedUrl);
         setElements(response.elements);
-        setScrapedUrl(decodedUrl);
+        
       } catch (error) {
         console.error('Failed to analyze website:', error);
         toast.error('Failed to analyze website. Please try again.');
