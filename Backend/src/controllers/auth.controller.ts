@@ -96,12 +96,12 @@ export const googleCallback = (req: any, res: Response): void => {
 //get current user
 export const getCurrentUser = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    if (!req.userId) {
+    if (!req.user.id) {
       res.status(401).json({ message: 'Not authenticated' });
       return;
     }
     
-    const user = await User.findById(req.userId).select('-password');
+    const user = await User.findById(req.user.id).select('-password');
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;

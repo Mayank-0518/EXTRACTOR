@@ -1,47 +1,37 @@
 import jwt from 'jsonwebtoken';
-import { Request } from 'express';
+import { Request, Response, NextFunction } from 'express';
 
-// Define the AuthRequest interface with userId
+// Define the AuthRequest interface with user
 export interface AuthRequest extends Request {
-  userId?: string;
+  user?: {
+    id: string;
+    email: string;
+    [key: string]: any;
+  };
 }
 
-export const authMiddleware = (req: AuthRequest, res, next) => {
+export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     // Get token from header
     const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ message: 'Authorization header missing or invalid format' });
-      return;
-    }
-    
-    const token = authHeader.split(' ')[1];
-    
+    const token = authHeader && authHeader.split(' ')[1];
+
     if (!token) {
-      res.status(401).json({ message: 'No token provided' });
-      return;
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Access token is required' 
+      });
     }
-    
+
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as jwt.JwtPayload;
-    
-    if (!decoded || !decoded.id) {
-      res.status(401).json({ message: 'Invalid token' });
-      return;
-    }
-    
-    // Add user ID to request
-    req.userId = decoded.id;
-    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+    req.user = decoded;
     next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      res.status(401).json({ message: 'Invalid token' });
-    } else if (error instanceof jwt.TokenExpiredError) {
-      res.status(401).json({ message: 'Token expired' });
-    } else {
-      res.status(500).json({ message: 'Authentication failed' });
-    }
+    console.error('Auth middleware error:', error);
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Invalid or expired token' 
+    });
   }
 };
