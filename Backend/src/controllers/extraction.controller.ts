@@ -12,13 +12,13 @@ export const saveExtraction = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
     
-    if (!req.userId) {
+    if (!req.user.id) {
       res.status(401).json({ message: 'Authentication required' });
       return;
     }
 
     const extraction = new Extraction({
-      userId: req.userId,
+      userId: req.user.id,
       url,
       title: title || url,
       selectors,
@@ -42,7 +42,7 @@ export const saveExtraction = async (req: AuthRequest, res: Response): Promise<v
 //extraction history
 export const getExtractionHistory = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    if (!req.userId) {
+    if (!req.user.id) {
       res.status(401).json({ message: 'Authentication required' });
       return;
     }
@@ -51,21 +51,21 @@ export const getExtractionHistory = async (req: AuthRequest, res: Response): Pro
     const limit = parseInt(req.query.limit as string || '10');
     
     const extractionsData = await Extraction
-      .find({ userId: req.userId })
+      .find({ userId: req.user.id })
       .select('url title createdAt data')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
-    
-    const total = await Extraction.countDocuments({ userId: req.userId });
-    
+
+    const total = await Extraction.countDocuments({ userId: req.user.id });
+
     // Format extractions for frontend compatibility
     const extractions = extractionsData.map(extraction => ({
       id: extraction._id.toString(),
       url: extraction.url,
       title: extraction.title,
       createdAt: extraction.createdAt,
-      userId: req.userId,
+      userId: req.user.id,
       dataCount: Array.isArray(extraction.data) ? extraction.data.length : 0
     }));
     
@@ -92,15 +92,15 @@ export const getExtraction = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const { id } = req.params;
     const format = req.query.format as string || 'json';
-    
-    if (!req.userId) {
+
+    if (!req.user.id) {
       res.status(401).json({ message: 'Authentication required' });
       return;
     }
 
     const extraction = await Extraction.findOne({ 
       _id: id, 
-      userId: req.userId 
+      userId: req.user.id 
     });
     
     if (!extraction) {
@@ -142,14 +142,14 @@ export const deleteExtraction = async (req: AuthRequest, res: Response): Promise
   try {
     const { id } = req.params;
     
-    if (!req.userId) {
+    if (!req.user.id) {
       res.status(401).json({ message: 'Authentication required' });
       return;
     }
 
     const extraction = await Extraction.findOneAndDelete({ 
       _id: id, 
-      userId: req.userId 
+      userId: req.user.id 
     });
     
     if (!extraction) {
@@ -172,14 +172,14 @@ export const previewExtraction = async (req: AuthRequest, res: Response): Promis
     const { id } = req.params;
     const limit = parseInt(req.query.limit as string || '10');
     
-    if (!req.userId) {
+    if (!req.user.id) {
       res.status(401).json({ message: 'Authentication required' });
       return;
     }
 
     const extraction = await Extraction.findOne({ 
       _id: id, 
-      userId: req.userId 
+      userId: req.user.id 
     });
     
     if (!extraction) {
