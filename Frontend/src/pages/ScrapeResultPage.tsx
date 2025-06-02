@@ -23,7 +23,6 @@ const ScrapeResultPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'formatted' | 'raw'>('formatted');
 
-  // Animation variants
   const pageVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -95,11 +94,9 @@ const ScrapeResultPage = () => {
     }
   };
 
-  // Decode the URL
   const decodedUrl = url ? decodeURIComponent(url) : '';
 
   useEffect(() => {
-    // Fetch available elements when component loads
     const fetchElements = async () => {
       try {
         setIsLoading(true);
@@ -124,24 +121,20 @@ const ScrapeResultPage = () => {
 
   const handleSelectorToggle = (selector: string) => {
     setSelectedSelectors(prev => {
-      // If we're toggling a regular selector but 'selectAll' is active,
-      // we need to deactivate 'selectAll' first
+
       if (selector !== 'selectAll' && prev.includes('selectAll')) {
         return [selector];
       }
       
-      // If we're toggling 'selectAll', ignore other selectors
       if (selector === 'selectAll') {
         return prev.includes('selectAll') ? [] : ['selectAll'];
       }
       
-      // Normal toggle behavior for regular selectors
       return prev.includes(selector) 
         ? prev.filter(s => s !== selector)
         : [...prev, selector];
     });
     
-    // Clear preview data when changing selection
     setPreviewData([]);
   };
 
@@ -162,7 +155,6 @@ const ScrapeResultPage = () => {
       
       setPreviewData(response.data);
       
-      // Show success message based on selection mode
       if (selectedSelectors.includes('selectAll')) {
         toast.success(`All elements extracted! Found ${response.data.length} items.`);
       } else {
@@ -186,7 +178,6 @@ const ScrapeResultPage = () => {
     try {
       setIsSaving(true);
 
-      // Create a title for the extraction
       const hostname = new URL(decodedUrl).hostname;
       const title = `Extraction from ${hostname}`;
 
@@ -207,7 +198,6 @@ const ScrapeResultPage = () => {
     }
   };
 
-  // Filter elements based on search query and element type
   const filteredElements = elements.filter(element => {
     const matchesType = elementTypeFilter === 'all' || element.type === elementTypeFilter;
     const matchesSearch = searchQuery === '' ||
@@ -217,7 +207,6 @@ const ScrapeResultPage = () => {
     return matchesType && matchesSearch;
   });
 
-  // Handle export
   const handleExport = (format: 'json' | 'csv') => {
     if (previewData.length === 0) {
       toast.error('No data to export. Please extract data first.');
@@ -245,11 +234,9 @@ const ScrapeResultPage = () => {
     }
   };
 
-  // Convert JSON data to CSV
   const convertToCSV = (data: PreviewData[]) => {
     if (data.length === 0) return '';
 
-    // Get all possible headers from all objects
     const headers = new Set<string>();
     data.forEach(item => {
       Object.keys(item).forEach(key => {
@@ -260,7 +247,6 @@ const ScrapeResultPage = () => {
     });
     const headerRow = Array.from(headers).join(',');
 
-    // Generate rows
     const rows = data.map(item => {
       return Array.from(headers).map(header => {
         const value = item[header];
@@ -277,7 +263,6 @@ const ScrapeResultPage = () => {
     return [headerRow, ...rows].join('\n');
   };
 
-  // Download file
   const downloadFile = (data: string, fileName: string, type: string) => {
     const blob = new Blob([data], { type });
     const url = window.URL.createObjectURL(blob);
@@ -291,13 +276,11 @@ const ScrapeResultPage = () => {
     document.body.removeChild(a);
   };
 
-  // Determine if a selector is selected
   const isSelected = (selector: string) => {
     return selectedSelectors.includes(selector) || 
            (selectedSelectors.includes('selectAll'));
   };
 
-  // Render element count badge
   const renderElementCount = () => {
     if (selectedSelectors.includes('selectAll')) {
       return <span className="bg-blue-600 text-xs px-2 py-0.5 rounded-full">{elements.length} (all)</span>;
@@ -307,11 +290,9 @@ const ScrapeResultPage = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Animated background */}
       <div className="fixed inset-0 w-full h-full">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(55,65,81,1)_0%,_rgba(17,24,39,1)_40%,_rgba(0,0,0,1)_100%)]"></div>
         
-        {/* Particle effects */}
         <motion.div 
           className="absolute inset-0 opacity-30 pointer-events-none"
           initial={{ opacity: 0 }}
@@ -342,7 +323,6 @@ const ScrapeResultPage = () => {
           ))}
         </motion.div>
         
-        {/* Animated gradient circles */}
         <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
           <motion.div
             initial={{ x: "100%", y: "100%", opacity: 0 }}
@@ -359,9 +339,7 @@ const ScrapeResultPage = () => {
         </div>
       </div>
 
-      {/* Content */}
       <div className="relative z-10">
-        {/* Header */}
         <motion.header 
           className="backdrop-blur-xl bg-black/30 shadow-md border-b border-white/5 sticky top-0 z-20"
           initial={{ y: -20, opacity: 0 }}
@@ -441,7 +419,6 @@ const ScrapeResultPage = () => {
             </motion.div>
           ) : (
             <div className="flex flex-col lg:flex-row gap-8">
-              {/* Left Side - Element Selection */}
               <motion.div 
                 variants={itemVariants}
                 className="w-full lg:w-1/3 backdrop-blur-xl bg-black/30 p-6 rounded-2xl border border-white/10 h-fit shadow-xl"
@@ -498,7 +475,6 @@ const ScrapeResultPage = () => {
                   </motion.div>
                 </div>              
 
-                {/* Element Type Filter */}
                 <motion.div 
                   className="flex mb-4 space-x-1 border-b border-white/5 pb-2"
                   initial={{ opacity: 0, y: 10 }}
@@ -543,7 +519,6 @@ const ScrapeResultPage = () => {
                   </motion.button>
                 </motion.div>
 
-                {/* Elements List */}
                 <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
                   <AnimatePresence>
                     {filteredElements.length === 0 ? (
@@ -600,7 +575,6 @@ const ScrapeResultPage = () => {
                                 {element.text || 'No text content'}
                               </p>
                               
-                              {/* Element tags */}
                               <div className="flex mt-1 flex-wrap gap-1">
                                 {element.hasImage && (
                                   <span className="bg-pink-900/30 text-pink-200 text-xs px-1 rounded">
@@ -673,7 +647,6 @@ const ScrapeResultPage = () => {
                 </motion.div>
               </motion.div>
 
-              {/* Right Side - Data Preview */}
               <motion.div 
                 variants={itemVariants}
                 className="w-full lg:w-2/3"
@@ -813,7 +786,6 @@ const ScrapeResultPage = () => {
                           </div>
 
                           {viewMode === 'raw' ? (
-                            // Raw JSON view
                             <motion.pre 
                               className="bg-black/30 p-6 rounded-xl overflow-auto whitespace-pre-wrap border border-white/5"
                               initial={{ opacity: 0 }}
@@ -823,7 +795,6 @@ const ScrapeResultPage = () => {
                               {JSON.stringify(previewData, null, 2)}
                             </motion.pre>
                           ) : (
-                            // Formatted view
                             <motion.div 
                               className="grid grid-cols-1 md:grid-cols-2 gap-4"
                               initial={{ opacity: 0 }}
@@ -840,7 +811,6 @@ const ScrapeResultPage = () => {
                                   whileHover="hover"
                                   className="bg-black/30 backdrop-blur-sm p-5 rounded-xl border border-white/5 hover:border-green-500/30 transition-all shadow-lg"
                                 >
-                                  {/* Image */}
                                   {item.image && (
                                     <motion.div 
                                       className="mb-4 rounded-lg overflow-hidden flex justify-center bg-black/30 p-2"
@@ -859,17 +829,14 @@ const ScrapeResultPage = () => {
                                     </motion.div>
                                   )}
 
-                                  {/* Title */}
                                   {item.title && (
                                     <h3 className="text-lg font-semibold text-yellow-300 mb-2">{item.title}</h3>
                                   )}
 
-                                  {/* Price */}
                                   {item.price && (
                                     <p className="text-green-400 font-bold">{item.price}</p>
                                   )}
 
-                                  {/* Rating & Reviews */}
                                   {(item.rating || item.reviews) && (
                                     <div className="flex items-center gap-2 mb-2">
                                       {item.rating && (
@@ -885,12 +852,10 @@ const ScrapeResultPage = () => {
                                     </div>
                                   )}
 
-                                  {/* Description */}
                                   {item.description && (
                                     <p className="text-sm text-gray-300 mb-2 line-clamp-3">{item.description}</p>
                                   )}
 
-                                  {/* Product URL */}
                                   {item.url && (
                                     <a 
                                       href={item.url} 
@@ -902,16 +867,13 @@ const ScrapeResultPage = () => {
                                     </a>
                                   )}
 
-                                  {/* Other attributes */}
                                   <div className="mt-2 pt-2 border-t border-white/5">
                                     {Object.entries(item).map(([key, value]) => {
-                                      // Skip keys already displayed or internal keys
                                       if (['title', 'price', 'image', 'description', 'rating', 'reviews', 'url', '_selector'].includes(key) || 
                                           key.startsWith('_')) {
                                         return null;
                                       }
                                       
-                                      // Skip empty values and objects/arrays
                                       if (value === null || value === undefined || value === '' || 
                                           typeof value === 'object') {
                                         return null;
@@ -930,7 +892,6 @@ const ScrapeResultPage = () => {
                             </motion.div>
                           )}
 
-                          {/* Show info on how many items were extracted but not shown if applicable */}
                           {previewData.length > 50 && viewMode === 'formatted' && (
                             <motion.div 
                               className="mt-4 text-center text-gray-400 text-sm"
