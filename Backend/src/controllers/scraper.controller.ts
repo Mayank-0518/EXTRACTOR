@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth.middleware.js';
+import { AuthRequest } from '../types/express.js';
 import ScraperService from '../services/scraper.service.js';
 
 //to analyze website (fetch and parse)

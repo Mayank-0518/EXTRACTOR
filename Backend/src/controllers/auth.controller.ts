@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/user.model.js';
-import { AuthRequest } from '../middleware/auth.middleware.js';
+import { AuthRequest } from '../types/express.js';
 
 
 

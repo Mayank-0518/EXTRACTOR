@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth.middleware.js';
+import { AuthRequest } from '../types/express.js';
 import { Extraction } from '../models/extraction.model.js';
 
 //save extraction

@@ -1,26 +1,19 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import { AuthRequest } from '../types/express.js';
 
-// Define the AuthRequest interface with user
-export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    [key: string]: any;
-  };
-}
-
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
   try {
     // Get token from header
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-      return res.status(401).json({ 
+      res.status(401).json({ 
         success: false, 
         message: 'Access token is required' 
       });
+      return; // Return void, not the response
     }
 
     // Verify token
@@ -29,9 +22,10 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
-    return res.status(403).json({ 
+    res.status(403).json({ 
       success: false, 
       message: 'Invalid or expired token' 
     });
+    // No return statement here - function returns void
   }
 };
