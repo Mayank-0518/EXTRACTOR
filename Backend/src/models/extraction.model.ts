@@ -39,7 +39,6 @@ const extractionSchema = new mongoose.Schema<IExtraction>(
   }
 );
 
-// Create indexes for faster queries
 extractionSchema.index({ userId: 1, createdAt: -1 });
 
 export const Extraction = mongoose.model<IExtraction>('Extraction', extractionSchema);

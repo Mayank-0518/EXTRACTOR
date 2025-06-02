@@ -20,7 +20,6 @@ function App() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    // Check user authentication status on app load
     dispatch(fetchCurrentUser());
   }, [dispatch]);
 

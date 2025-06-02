@@ -22,7 +22,6 @@ const userSchema = new mongoose.Schema<IUser>({
   password: {
     type: String,
     required: function () {
-      // Password is required only if the user doesn't have a googleId
       return !this.googleId;
     },
     minlength: 6
@@ -40,17 +39,13 @@ const userSchema = new mongoose.Schema<IUser>({
   timestamps: true
 });
 
-// Password hashing middleware
 userSchema.pre('save', async function (next) {
   const user = this;
   
-  // Only hash the password if it has been modified (or is new)
   if (!user.isModified('password') || !user.password) return next();
   
   try {
-    // Generate salt
     const salt = await bcrypt.genSalt(10);
-    // Hash the password with the new salt
     user.password = await bcrypt.hash(user.password, salt);
     next();
   } catch (error) {
@@ -58,7 +53,6 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-// Method to compare password for login
 userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
   try {
     if (!this.password) return false;

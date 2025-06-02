@@ -32,7 +32,6 @@ const ExtractionDetailPage = () => {
   const handleExport = () => {
     if (!extraction) return;
     
-    // Create and download JSON file
     const blob = new Blob([JSON.stringify(extraction.data, null, 2)], { type: 'application/json' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -88,7 +87,6 @@ const ExtractionDetailPage = () => {
         </button>
       </nav>
 
-      {/* Main Content */}
       <div className="container mx-auto px-6 py-10">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">{extraction.title}</h1>
@@ -120,7 +118,6 @@ const ExtractionDetailPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {extraction.data.map((item: any, index: number) => (
                 <div key={index} className="bg-gray-800 p-4 rounded-lg border border-gray-700 hover:border-green-500 transition-colors">
-                  {/* Show image if available */}
                   {item.image && (
                     <div className="mb-3">
                       <img 
@@ -135,20 +132,16 @@ const ExtractionDetailPage = () => {
                     </div>
                   )}
                   
-                  {/* Title */}
                   {item.title && (
                     <h3 className="text-lg font-semibold text-yellow-300 mb-2">{item.title}</h3>
                   )}
                   
-                  {/* Price */}
                   {item.price && (
                     <p className="text-green-400 font-bold">{item.price}</p>
                   )}
                   
-                  {/* Other properties */}
                   <div className="mt-3 pt-3 border-t border-gray-700">
                     {Object.entries(item).map(([key, value]) => {
-                      // Skip already displayed properties and images
                       if (['title', 'price', 'image', 'alt', '_selector'].includes(key)) {
                         return null;
                       }
@@ -165,7 +158,6 @@ const ExtractionDetailPage = () => {
               ))}
             </div>
             
-            {/* Also show raw data for debugging */}
             <details className="mt-6">
               <summary className="cursor-pointer text-gray-400 hover:text-white transition-colors">
                 Show raw JSON data

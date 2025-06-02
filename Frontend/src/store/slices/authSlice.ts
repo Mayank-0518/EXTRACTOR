@@ -3,7 +3,6 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { toast } from 'react-hot-toast';
 import authService from '../../api/authService';
 
-// Define types
 interface User {
   id: string;
   email: string;
@@ -18,7 +17,6 @@ interface AuthState {
   error: string | null;
 }
 
-// Initial state
 const initialState: AuthState = {
   user: null,
   token: localStorage.getItem('token'),
@@ -27,7 +25,6 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Async thunks
 export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
@@ -74,7 +71,6 @@ export const fetchCurrentUser = createAsyncThunk('auth/fetchCurrentUser', async 
   }
 });
 
-// Auth slice
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -93,7 +89,6 @@ const authSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // Login
     builder
       .addCase(login.pending, (state) => {
         state.loading = true;
@@ -111,7 +106,6 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       });
 
-    // Register
     builder
       .addCase(register.pending, (state) => {
         state.loading = true;
@@ -125,7 +119,6 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       });
 
-    // Fetch current user
     builder
       .addCase(fetchCurrentUser.pending, (state) => {
         state.loading = true;

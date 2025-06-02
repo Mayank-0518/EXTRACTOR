@@ -3,15 +3,20 @@ import passport from 'passport';
 import { register, login, googleCallback, getCurrentUser } from '../controllers/auth.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
+
+
 const router = express.Router();
 
-// Register a new user
+
+
 router.post('/register', register);
 
-// User login
+
+
 router.post('/login', login);
 
-// Google OAuth routes
+
+
 router.get('/google', (req, res, next) => {
   const state = req.query.state as string | undefined;
   const authOptions = {
@@ -21,10 +26,10 @@ router.get('/google', (req, res, next) => {
   passport.authenticate('google', authOptions)(req, res, next);
 });
 
-// Google OAuth callback
+
+
 router.get('/google/callback', 
   (req, res, next) => {
-    // Extract state from query to pass it through the authentication flow
     const state = req.query.state as string | undefined;
     
     passport.authenticate('google', { 
@@ -35,7 +40,9 @@ router.get('/google/callback',
   googleCallback
 );
 
-// Get current user
+
+
+
 router.get('/me', authMiddleware, getCurrentUser);
 
 export default router;

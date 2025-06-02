@@ -15,17 +15,14 @@ const OAuthCallback = () => {
     const state = searchParams.get('state');
     const storedState = localStorage.getItem('oauth_state');
     
-    // Clear stored state regardless of outcome
     localStorage.removeItem('oauth_state');
     
-    // Check for errors first
     if (error) {
       toast.error(`Authentication error: ${error}`);
       navigate('/login');
       return;
     }
     
-    // Validate state if provided (security check)
     if (state && storedState && state !== storedState) {
       toast.error('Invalid authentication state');
       navigate('/login');
@@ -34,13 +31,10 @@ const OAuthCallback = () => {
     
     if (token) {
       try {
-        // Save token to local storage and setup headers
         authService.setToken(token);
         
-        // Notify user
         toast.success('Successfully signed in with Google!');
         
-        // Redirect to dashboard
         navigate('/dashboard');
       } catch (error) {
         console.error('OAuth callback error:', error);

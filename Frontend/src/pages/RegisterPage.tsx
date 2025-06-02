@@ -117,7 +117,6 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center overflow-hidden relative bg-black p-0 m-0">
-      {/* Animated background */}
       <div className="fixed inset-0 w-full h-full">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(55,65,81,1)_0%,_rgba(17,24,39,1)_40%,_rgba(0,0,0,1)_100%)]"></div>
         
@@ -151,7 +150,6 @@ const RegisterPage = () => {
           ))}
         </motion.div>
         
-        {/* Animated gradient circles */}
         <div className="absolute inset-0 overflow-hidden z-0">
           <motion.div
             initial={{ x: "100%", y: "100%", opacity: 0 }}
@@ -168,14 +166,13 @@ const RegisterPage = () => {
         </div>
       </div>
 
-      {/* Main content */}
       <motion.div
         className="relative z-10 w-full max-w-md"
         variants={pageTransition}
         initial="hidden"
         animate="visible"
       >
-        {/* Initial logo animation */}
+
         <AnimatePresence>
           {!animationComplete && (
             <motion.div 
@@ -200,7 +197,6 @@ const RegisterPage = () => {
           )}
         </AnimatePresence>
 
-        {/* Registration form container */}
         <motion.div
           variants={explosionVariants}
           className="w-full px-6 py-8 relative"
@@ -221,11 +217,9 @@ const RegisterPage = () => {
               } 
             }}
           >
-            {/* Glow effects */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[100px] bg-yellow-500/20 blur-3xl rounded-full"></div>
             
             <div className="p-8">
-              {/* Logo and header */}
               <div className="text-center mb-8">
                 <motion.div
                   variants={floatingAnimation}
@@ -264,7 +258,6 @@ const RegisterPage = () => {
                 </motion.p>
               </div>
 
-              {/* Form */}
               <motion.form 
                 onSubmit={handleSubmit}
                 className="space-y-5"
@@ -274,7 +267,6 @@ const RegisterPage = () => {
                   variants={slideUpVariants}
                   className="space-y-4"
                 >
-                  {/* Name field */}
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
                       Full Name
@@ -302,7 +294,6 @@ const RegisterPage = () => {
                     </div>
                   </div>
 
-                  {/* Email field */}
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                       Email Address
@@ -330,7 +321,6 @@ const RegisterPage = () => {
                     </div>
                   </div>
                   
-                  {/* Password field */}
                   <div>
                     <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                       Password
@@ -367,7 +357,6 @@ const RegisterPage = () => {
                     </div>
                   </div>
 
-                  {/* Confirm Password field */}
                   <div>
                     <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
                       Confirm Password
