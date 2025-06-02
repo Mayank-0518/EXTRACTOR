@@ -476,7 +476,6 @@ export class ScraperService {
 
   private extractTableData($: cheerio.CheerioAPI, table: cheerio.Cheerio<any>, baseUrl: string): Record<string, any>[] {
     const tableData: Record<string, any>[] = [];
-    // Get headers from the first row
     const headers: string[] = [];
     $(table).find('tr:first-child th, tr:first-child td').each((_, cell) => {
       headers.push($(cell).text().trim());
@@ -502,11 +501,8 @@ export class ScraperService {
     });
     return tableData;
   }
-  /**
-   * Extract structured data from an element with deep nested search
-   */
+  
   private extractStructuredData($: cheerio.CheerioAPI, element: cheerio.Cheerio<any>, item: Record<string, any>, baseUrl: string): void {
-    // Deep image extraction - search through all nested levels
     const images: string[] = [];
     const imageData: any[] = [];
     element.find('img').each((_, img) => {
@@ -542,7 +538,8 @@ export class ScraperService {
       }
       item.imageData = imageData;
     }
-    // Extract heading data (often product titles)
+
+
     element.find('h1, h2, h3, h4, h5, h6, [class*="title"], [class*="name"], [id*="title"]').each((_, heading) => {
       const $heading = $(heading);
       const text = $heading.text().trim();
@@ -555,7 +552,8 @@ export class ScraperService {
         }
       }
     });
-    // Extract price data
+
+
     element.find('.price, [class*=price], .cost, [class*=cost], [data-price], .money, [class*=money], .amount').each((_, price) => {
       const $price = $(price);
       let priceText = $price.text().trim();
@@ -574,7 +572,8 @@ export class ScraperService {
         }
       }
     });
-    // Extract ratings
+
+
     element.find('.rating, [class*=rating], .stars, [class*=stars], [class*=review-score], .score').each((_, rating) => {
       const $rating = $(rating);
       let ratingText = $rating.text().trim();
@@ -590,7 +589,8 @@ export class ScraperService {
         }
       }
     });
-    // Extract reviews count
+
+
     element.find('.reviews, [class*=review], .votes, [class*=votes], [class*=rating-count]').each((_, reviews) => {
       const $reviews = $(reviews);
       const text = $reviews.text().trim();
@@ -605,7 +605,8 @@ export class ScraperService {
         }
       }
     });
-    // Extract images (again for alt)
+
+
     element.find('img').each((_, img) => {
       const $img = $(img);
       const src = $img.attr('src');
@@ -624,7 +625,8 @@ export class ScraperService {
         }
       }
     });
-    // Extract links
+
+
     element.find('a').each((_, link) => {
       const $link = $(link);
       const href = $link.attr('href');
@@ -637,7 +639,7 @@ export class ScraperService {
         }
       }
     });
-    // Extract product description
+
     element.find('p, .description, [class*=desc], .product-desc, .summary, [class*=summary]').each((_, desc) => {
       const $desc = $(desc);
       const text = $desc.text().trim();
@@ -645,7 +647,7 @@ export class ScraperService {
         item.description = text.length > 200 ? text.substring(0, 200) + '...' : text;
       }
     });
-    // Extract availability/stock info
+
     element.find('.availability, [class*=stock], [class*=available], .in-stock, .out-of-stock').each((_, stock) => {
       const $stock = $(stock);
       const text = $stock.text().trim();
@@ -654,7 +656,7 @@ export class ScraperService {
         item.inStock = /in.?stock|available|ships/i.test(text) && !/out.?of.?stock|unavailable/i.test(text);
       }
     });
-    // Extract brand information
+
     element.find('.brand, [class*=brand], [data-brand], .manufacturer').each((_, brand) => {
       const $brand = $(brand);
       const text = $brand.text().trim() || $brand.attr('data-brand') || '';
@@ -662,7 +664,8 @@ export class ScraperService {
         item.brand = text;
       }
     });
-    // Extract SKU/Product ID
+
+
     element.find('[class*=sku], [data-sku], [class*=product-id], [data-product-id]').each((_, sku) => {
       const $sku = $(sku);
       const text = $sku.text().trim() || $sku.attr('data-sku') || $sku.attr('data-product-id') || '';
@@ -670,7 +673,8 @@ export class ScraperService {
         item.sku = text;
       }
     });
-    // Add any additional useful data from spans, divs with meaningful classes
+
+
     element.find('span, div').each((_, el) => {
       const $el = $(el);
       const classNames = $el.attr('class')?.split(' ') || [];
