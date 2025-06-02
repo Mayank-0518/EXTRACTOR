@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { URL } from 'url';
@@ -810,6 +809,123 @@ export class ScraperService {
       return true;
     });
   }
+
+
+
+  //
+parseSafeHTML(html: string, baseUrl: string) {
+  try {
+    return this.parseHTML(html, baseUrl);
+  } catch (error) {
+    console.log("Normal parsing failed, using safe method");
+    return this.parseBasicHTML(html, baseUrl);
+  }
+}
+
+
+
+
+
+parseBasicHTML(html: string, baseUrl: string) {
+  const $ = cheerio.load(html, {
+    xmlMode: false
+  });
+  
+  const url = baseUrl;
+  const title = $('title').text().trim() || url;
+  const elements = [];
+  
+  try {
+   
+    const commonTags = ['div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'section', 'article', 'main', 'aside', 'header', 'footer', 'nav'];
+    
+    $('[id]').each((_, el) => {
+      try {
+        const element = $(el);
+        const id = element.attr('id');
+        
+        if (id && !id.includes('[') && !id.includes(']') && !id.includes('(') && !id.includes(')') && 
+            !id.includes('"') && !id.includes("'") && !id.includes('=')) {
+          elements.push({
+            selector: `#${id}`,
+            type: 'id',
+            text: element.text().trim().substring(0, 150),
+            children: element.children().length,
+            hasImage: element.find('img').length > 0,
+            hasTable: element.find('table').length > 0
+          });
+        }
+      } catch (e) {
+      }
+    });
+    
+    commonTags.forEach(tag => {
+      try {
+        if (elements.length < 100) { 
+          const tagCount = $(tag).length;
+          if (tagCount > 0 && tagCount < 100) { 
+            elements.push({
+              selector: tag,
+              type: 'tag',
+              text: $(tag).first().text().trim().substring(0, 150),
+              children: $(tag).first().children().length,
+              hasImage: $(tag).first().find('img').length > 0,
+              hasTable: $(tag).first().find('table').length > 0
+            });
+          }
+        }
+      } catch (e) {
+      }
+    });
+    
+    if (elements.length < 50) {
+      $('[class]').each((_, el) => {
+        try {
+          if (elements.length >= 100) return; 
+          
+          const element = $(el);
+          const classes = element.attr('class');
+          
+          if (classes) {
+            const firstClass = classes.split(/\s+/).find(c => 
+              c && 
+              !c.includes('[') && !c.includes(']') && 
+              !c.includes('(') && !c.includes(')') &&
+              !c.includes('"') && !c.includes("'") && 
+              !c.includes('=')
+            );
+            
+            if (firstClass) {
+              const selector = `.${firstClass}`;
+              
+              if (!elements.some(e => e.selector === selector)) {
+                elements.push({
+                  selector,
+                  type: 'class',
+                  text: element.text().trim().substring(0, 150),
+                  children: element.children().length,
+                  hasImage: element.find('img').length > 0,
+                  hasTable: element.find('table').length > 0
+                });
+              }
+            }
+          }
+        } catch (e) {
+
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Error in basic HTML parsing:", error);
+  }
+  
+  return {
+    url,
+    title,
+    elements: elements.slice(0, 100), 
+    html
+  };
+}
 }
 
 export default new ScraperService();

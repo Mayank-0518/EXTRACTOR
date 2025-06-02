@@ -2,7 +2,6 @@ import { Response } from 'express';
 import { AuthRequest } from '../types/express.js';
 import ScraperService from '../services/scraper.service.js';
 
-//to analyze website (fetch and parse)
 export const analyzeWebsite = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { url } = req.body;
@@ -16,13 +15,27 @@ export const analyzeWebsite = async (req: AuthRequest, res: Response): Promise<v
     
     const html = await ScraperService.fetchWebsite(url);
     
-    const data = ScraperService.parseHTML(html, url);
-    
-    res.json({
-      url: data.url,
-      pageTitle: data.title,
-      elements: data.elements
-    });
+    try {
+      let data;
+      try {
+        data = ScraperService.parseHTML(html, url);
+      } catch (parseError) {
+        console.log("Standard parsing failed, using robust parser");
+        data = ScraperService.parseBasicHTML(html, url);
+      }
+      
+      res.json({
+        url: data.url,
+        pageTitle: data.title,
+        elements: data.elements
+      });
+    } catch (parseError) {
+      console.error('Error parsing HTML:', parseError);
+      res.status(500).json({
+        message: 'Failed to analyze website content',
+        error: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
+      });
+    }
   } catch (error) {
     console.error('Error analyzing website:', error);
     res.status(500).json({ 
@@ -31,7 +44,6 @@ export const analyzeWebsite = async (req: AuthRequest, res: Response): Promise<v
   }
 };
 
-//extraction from selected elements
 export const extractData = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { url, selectors } = req.body;
