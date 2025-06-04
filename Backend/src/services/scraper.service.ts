@@ -36,8 +36,8 @@ export class ScraperService {
           'Accept': 'text/html,application/xhtml+xml,application/xml',
           'Accept-Language': 'en-US,en;q=0.9',
         },
-        timeout: 5000,
-        maxRedirects: 5,
+        timeout: 10000,    
+        maxRedirects: 5,   
       });
       
       return response.data;
